@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polymer-CB Sensor with Gas Absorption</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f4;
+    }
+    h1 {
+      color: #00DE93;
+      margin: 2rem 1rem 1rem;
+      text-align: center;
+    }
+    .layout {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.25rem;
+      padding: 0.5rem;
+    }
+    .canvas-wrapper {
+      flex: 1 1 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas {
+      border: 2px solid #00DE93;
+      background: white;
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+    }
+    .figure-caption {
+      margin-top: 0.3rem;
+      font-size: 0.95rem;
+      color: #333;
+      text-align: center;
+    }
+    .equation {
+      margin: 2rem auto;
+      max-width: 800px;
+      background: #e0f9f1;
+      padding: 1rem;
+      border: 1px solid #00DE93;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.1rem;
+    }
+    .science-box {
+      display: none;
+      margin: 2rem auto;
+      max-width: 800px;
+      background: #fff;
+      border-left: 6px solid #00DE93;
+      padding: 1rem;
+      font-size: 1rem;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <nav style="position: sticky; top: 0; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center;">
+      <img src="https://media.licdn.com/dms/image/v2/C4E0BAQHOhSyAWy-p0Q/company-logo_200_200/company-logo_200_200/0/1667921192659/stratuscent_logo?e=2147483647&v=beta&t=Jeo2cNHo6735I2YiT9gtucECAMuOesoJV8Z2d9zFaKw" alt="Logo" style="height: 40px; width: auto; margin-right: 10px; border-radius: 6px;" />
+      <span style="font-weight: bold; font-size: 1.2rem; color: #00DE93;">How does the Polymer–CB Sensor work?</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <button id="toggleButton" style="background-color: #00DE93; color: white; font-weight: bold; padding: 0.4rem 1rem; border: none; border-radius: 6px; cursor: pointer;">Pause</button>
+      <button id="scienceButton" style="background-color: #00DE93; color: white; font-weight: bold; padding: 0.4rem 1rem; border: none; border-radius: 6px; cursor: pointer;">Science</button>
+      <label for="speedSlider" style="font-size: 0.85rem; color: #333;">Speed</label>
+      <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1" style="width: 120px; accent-color: #00DE93;">
+    </div>
+  </nav>
+  <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
+    <div class="layout" style="margin-top: 1rem; column-gap: 0.75rem; max-width: 800px; margin-left: auto; margin-right: auto;">
+      <div class="canvas-wrapper">
+        <canvas id="sensorCanvas" width="400" height="300"></canvas>
+        <div class="figure-caption">Figure 1: Polymer-CB thin film</div>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="graphCanvas" width="400" height="300"></canvas>
+        <div class="figure-caption">Figure 2: Resistance of thin films vs Time</div>
+      </div>
+    </div>
+    <div class="equation">
+      Swelling → CB separation ↑ → Connectivity ↓ → Resistance ↑<br />
+      ΔR = R - R₀ (Reversible when gas is removed gradually)
+    </div>
+    <div id="science" class="science-box">
+      <!-- Science content unchanged -->
+    </div>
+  </div>
+  <script>
+    const toggleBtn = document.getElementById('toggleButton');
+    const scienceBtn = document.getElementById('scienceButton');
+    const scienceBox = document.getElementById('science');
+    const speedSlider = document.getElementById('speedSlider');
+
+    let isRunning = true;
+    let speedMultiplier = parseFloat(speedSlider.value);
+    speedSlider.addEventListener('input', e => speedMultiplier = parseFloat(e.target.value));
+
+    scienceBtn.addEventListener('click', () => {
+      scienceBox.style.display = scienceBox.style.display === 'block' ? 'none' : 'block';
+      if (scienceBox.style.display === 'block') scienceBox.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    let animationFrameId = null;
+    let frame = 0;
+    let swell = 1.0;
+    let resistance = 100000;
+    let particleDensity = 1.0;
+
+    const sensorCanvas = document.getElementById('sensorCanvas');
+    const sensorCtx = sensorCanvas.getContext('2d');
+    const graphCanvas = document.getElementById('graphCanvas');
+    const graphCtx = graphCanvas.getContext('2d');
+
+    const fullParticles = Array.from({ length: 7000 }, () => ({ x: Math.random() * 400, y: Math.random() * 300 }));
+    const resistanceData = [];
+    const maxDataPoints = 600;
+
+    function updateSwellAndResistance() {
+      const t = frame % 960;
+      let tInPhase = 0;
+      if (t < 120) { swell = 1.0; resistance = 100000; particleDensity = 1.2; }
+      else if (t < 240) { tInPhase = t - 120; let r = 1 - Math.exp(-0.1 * tInPhase); swell = 1.0 + 0.2 * r; resistance = 100000 + 50000 * r; particleDensity = 1.2 - 0.9 * r; }
+      else if (t < 300) { swell = 1.2; resistance = 150000; particleDensity = 0.3; }
+      else if (t < 600) { tInPhase = t - 300; let r = 1 - Math.exp(-0.02 * tInPhase); swell = 1.2 - 0.2 * r; resistance = 150000 - 50000 * r; particleDensity = 0.3 + 0.9 * r; }
+      else { swell = 1.0; resistance = 100000; particleDensity = 1.2; }
+    }
+
+    function drawSensorFrame() {
+      const sensorT = frame % 960;
+      const showSensorText = sensorT >= 120 && sensorT < 300;
+      const gasDensity = swell > 1.05 ? 80 : 0;
+      sensorCtx.clearRect(0, 0, 400, 300);
+      sensorCtx.fillStyle = '#e8f7f3';
+      sensorCtx.fillRect(0, 0, 400, 300);
+      if (showSensorText) {
+        sensorCtx.font = 'bold 16px sans-serif';
+        sensorCtx.fillStyle = '#FF5733';
+        sensorCtx.fillText('Analyte (gas) introduction →', 100, 30);
+      }
+      for (let i = 0; i < gasDensity; i++) {
+        sensorCtx.beginPath();
+        sensorCtx.arc(Math.random() * 400, Math.random() * 300, 3, 0, Math.PI * 2);
+        sensorCtx.fillStyle = 'rgba(0, 180, 130, 0.4)';
+        sensorCtx.fill();
+      }
+      const count = Math.min(Math.floor(fullParticles.length * particleDensity), fullParticles.length);
+      for (let i = 0; i < count; i++) {
+        const p = fullParticles[i];
+        const cx = 200 + (p.x - 200) * swell;
+        const cy = 150 + (p.y - 150) * swell;
+        sensorCtx.beginPath();
+        sensorCtx.arc(cx, cy, 1.2, 0, Math.PI * 2);
+        sensorCtx.fillStyle = '#333';
+        sensorCtx.fill();
+      }
+    }
+
+    function drawGraphFrame() {
+      const graphT = frame % 960;
+      const flash = graphT >= 120 && graphT < 300;
+      const showText = graphT >= 120 && graphT < 300;
+      if (typeof drawGraphFrame.bgValue === 'undefined') drawGraphFrame.bgValue = 255;
+      const targetBgValue = flash ? 220 : 255;
+      const transitionSpeed = flash ? 0.05 : 0.01;
+      drawGraphFrame.bgValue += (targetBgValue - drawGraphFrame.bgValue) * transitionSpeed;
+      const green = Math.round(drawGraphFrame.bgValue);
+      const bgColor = `rgb(255, ${green}, ${Math.min(green + 15, 255)})`;
+
+      resistanceData.push(resistance);
+      if (resistanceData.length > maxDataPoints) resistanceData.shift();
+      graphCtx.fillStyle = bgColor;
+      graphCtx.fillRect(0, 0, 400, 300);
+      graphCtx.strokeStyle = '#e0e0e0';
+      for (let x = 0; x <= 400; x += 50) { graphCtx.beginPath(); graphCtx.moveTo(x, 0); graphCtx.lineTo(x, 300); graphCtx.stroke(); }
+      for (let y = 0; y <= 300; y += 50) { graphCtx.beginPath(); graphCtx.moveTo(0, y); graphCtx.lineTo(400, y); graphCtx.stroke(); }
+      graphCtx.beginPath();
+      for (let i = 0; i < resistanceData.length - 2; i++) {
+        const xc = (i + 0.5) * (400 / maxDataPoints);
+        const yc = 300 - (resistanceData[i] - 95000) / 500;
+        const x2 = (i + 1) * (400 / maxDataPoints);
+        const y2 = 300 - (resistanceData[i + 1] - 95000) / 500;
+        if (i === 0) graphCtx.moveTo(x2, y2);
+        else graphCtx.quadraticCurveTo(xc, yc, x2, y2);
+      }
+      graphCtx.strokeStyle = '#00DE93';
+      graphCtx.lineWidth = 2;
+      graphCtx.stroke();
+      graphCtx.fillStyle = '#00DE93';
+      graphCtx.font = '14px sans-serif';
+      graphCtx.save();
+      graphCtx.translate(20, 150);
+      graphCtx.rotate(-Math.PI / 2);
+      graphCtx.textAlign = 'center';
+      graphCtx.fillText('Resistance (Ω)', 0, 0);
+      graphCtx.restore();
+      graphCtx.fillText('Time [s]', 330, 290);
+
+      
+    }
+
+    function animate() {
+      updateSwellAndResistance();
+      drawSensorFrame();
+      drawGraphFrame();
+      frame++;
+      animationFrameId = setTimeout(() => requestAnimationFrame(animate), 1000 / (24 * speedMultiplier));
+    }
+
+    function toggleAnimation() {
+      if (isRunning) {
+        clearTimeout(animationFrameId);
+        toggleBtn.textContent = 'Start';
+      } else {
+        animate();
+        toggleBtn.textContent = 'Pause';
+      }
+      isRunning = !isRunning;
+    }
+
+    toggleBtn.addEventListener('click', toggleAnimation);
+    animate();
+  </script>
+</body>
+</html>
