@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Polymer-CB Sensor with Gas Absorption</title>
+  <link rel="icon" type="image/png" href="https://media.licdn.com/dms/image/v2/C4E0BAQHOhSyAWy-p0Q/company-logo_200_200/company-logo_200_200/0/1667921192659/stratuscent_logo?e=2147483647&v=beta&t=Jeo2cNHo6735I2YiT9gtucECAMuOesoJV8Z2d9zFaKw">
   <style>
     html, body {
       margin: 0;
@@ -15,6 +16,7 @@
       color: #00DE93;
       margin: 2rem 1rem 1rem;
       text-align: center;
+      font-size: min(2rem, 6vw);
     }
     .layout {
       display: flex;
@@ -22,8 +24,8 @@
       justify-content: center;
       gap: 0.25rem;
       padding: 0.5rem;
-      column-gap: 3rem;
-      max-width: 880px;
+      column-gap: min(3rem, 5vw);
+      max-width: min(880px, 90vw);
       margin: 0 auto;
     }
     .canvas-wrapper {
@@ -31,16 +33,17 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: relative; /* For absolute positioning of buttons and labels */
     }
     canvas {
       border: 2px solid #00DE93;
       background: white;
       width: 100%;
       max-width: 400px;
-      height: 300px;
+      height: min(300px, 40vw);
     }
     .sensor-label, .graph-label {
-      width: 250px;
+      width: min(250px, 80vw);
       height: 24px;
       background: transparent;
       font: bold 16px sans-serif;
@@ -49,6 +52,21 @@
       margin: 0 auto 5px auto;
       text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
       animation: blink 1s infinite;
+    }
+    .sensor-label.paused, .graph-label.paused {
+      animation-play-state: paused;
+    }
+    .sensor-label.expanding {
+      animation: expand 2s ease-in-out infinite, blink 1s infinite;
+    }
+    .sensor-label.compressing {
+      transform: scale(0.8);
+      animation: blink 1s infinite;
+    }
+    @keyframes expand {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
     }
     .graph-label span {
       position: relative;
@@ -65,7 +83,7 @@
       padding: 0.5rem;
       border-radius: 4px;
       font-size: 0.9rem;
-      width: 200px;
+      width: min(200px, 60vw);
       text-align: center;
       z-index: 10;
     }
@@ -82,9 +100,93 @@
       color: #333;
       text-align: center;
     }
+    .cleaning-label {
+      position: absolute;
+      top: 50%; /* Center vertically */
+      left: 50%; /* Center horizontally */
+      transform: translate(-50%, -50%); /* Center both axes */
+      background: rgba(255, 255, 255, 0.8); /* Semi-transparent background for readability */
+      font: bold 16px sans-serif;
+      text-align: center;
+      line-height: 24px;
+      color: black;
+      text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      z-index: 10; /* Ensure label is above canvas */
+      display: none; /* Hidden by default */
+    }
+    .breathe-button {
+      position: absolute;
+      top: 50%; /* Center vertically */
+      left: 50%; /* Center horizontally */
+      transform: translate(-50%, -50%); /* Center both axes */
+      background: black;
+      color: #FFFFFF;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      height: 36px;
+      box-sizing: border-box;
+      z-index: 10; /* Ensure button is above canvas */
+      display: none; /* Hidden by default during initial cycle */
+      animation: breathe 1.5s ease-in-out infinite;
+    }
+    .breathe-button.paused {
+      animation-play-state: paused;
+    }
+    @keyframes breathe {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+    .breathe-button:hover {
+      background: #333;
+    }
+    .breathe-button:focus {
+      outline: 2px solid #00b57b;
+      box-shadow: 0 0 8px rgba(0, 222, 147, 0.5);
+    }
+    .breathe-button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .download-button {
+      position: absolute;
+      top: 50%; /* Center vertically */
+      left: 50%; /* Center horizontally */
+      transform: translate(-50%, -50%); /* Center both axes */
+      background: black;
+      color: #FFFFFF;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      height: 36px;
+      box-sizing: border-box;
+      z-index: 10; /* Ensure button is above canvas */
+      display: none; /* Hidden by default */
+      animation: breathe 1.5s ease-in-out infinite;
+    }
+    .download-button.paused {
+      animation-play-state: paused;
+    }
+    .download-button:hover {
+      background: #333;
+    }
+    .download-button:focus {
+      outline: 2px solid #00b57b;
+      box-shadow: 0 0 8px rgba(0, 222, 147, 0.5);
+    }
     .equation {
       margin: 2rem auto;
-      max-width: 880px;
+      max-width: min(880px, 90vw);
       background: #e0f9f1;
       padding: 1rem;
       border: 1px solid #00DE93;
@@ -95,7 +197,7 @@
     .science-box {
       display: none;
       margin: 2rem auto;
-      max-width: 880px;
+      max-width: min(880px, 90vw);
       background: #fff;
       border-left: 6px solid #00DE93;
       padding: 1rem;
@@ -107,7 +209,7 @@
       text-align: center;
       color: #333;
       margin: 2rem auto;
-      max-width: 880px;
+      max-width: min(880px, 90vw);
     }
     .no-js-fallback.show {
       display: block;
@@ -121,7 +223,7 @@
     .y-axis-labels {
       position: absolute;
       left: -40px;
-      height: 300px;
+      height: min(300px, 40vw);
       width: 30px;
       display: flex;
       flex-direction: column;
@@ -135,7 +237,7 @@
       user-select: text;
     }
     nav button, .intro-content button {
-      background: #00DE93;
+      background: black;
       color: #FFFFFF;
       padding: 0.6rem 1.2rem;
       border: none;
@@ -143,13 +245,27 @@
       font-weight: bold;
       cursor: pointer;
       transition: all 0.2s ease;
-      height: 36px; /* Fixed height for consistency */
-      box-sizing: border-box; /* Include padding in height */
+      height: 36px;
+      box-sizing: border-box;
     }
-    nav button:hover, .intro-content button:hover {
-      background: #00b57b;
+    nav button {
+      background: transparent;
+      color: #333;
+      border: 2px solid #00DE93;
+      border-radius: 6px;
+      padding: 0.6rem 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      height: 36px;
+      box-sizing: border-box;
     }
-    nav button:focus, .intro-content button:focus {
+    nav button:hover {
+      background: #00DE93;
+      color: #FFFFFF;
+      border-color: #00DE93;
+    }
+    nav button:focus {
       outline: 2px solid #00b57b;
       box-shadow: 0 0 8px rgba(0, 222, 147, 0.5);
     }
@@ -175,7 +291,7 @@
       background: white;
       padding: 2rem;
       border-radius: 8px;
-      max-width: 500px;
+      max-width: min(500px, 90vw);
       text-align: center;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
@@ -185,7 +301,7 @@
       margin-bottom: 1rem;
     }
     .intro-logo {
-      height: 40px;
+      height: min(40px, 8vw);
       width: auto;
       display: block;
       margin: 0 auto 1rem auto;
@@ -215,39 +331,187 @@
       50% { outline-color: #00b57b; }
       100% { outline-color: #00DE93; }
     }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .layout {
+        flex-direction: column;
+        column-gap: 0;
+        gap: 1rem;
+      }
+      .canvas-wrapper {
+        flex: 1 1 100%;
+      }
+      canvas {
+        max-width: 100%;
+        height: min(250px, 50vw);
+      }
+      .sensor-label, .graph-label {
+        font-size: 14px;
+        width: min(200px, 90vw);
+      }
+      .cleaning-label {
+        font-size: 14px;
+      }
+      .sensor-label.expanding {
+        animation: expand 2s ease-in-out infinite, blink 1s infinite;
+      }
+      .sensor-label.compressing {
+        transform: scale(0.85);
+        animation: blink 1s infinite;
+      }
+      .sensor-label.paused, .graph-label.paused {
+        animation-play-state: paused;
+      }
+      @keyframes expand {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+      }
+      .breathe-button, .download-button {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        height: 36px;
+      }
+      .y-axis-labels {
+        left: -30px;
+        width: 25px;
+        font-size: 10px;
+        height: min(250px, 50vw);
+      }
+      .figure-caption {
+        font-size: 0.9rem;
+      }
+      .equation {
+        font-size: 1rem;
+        padding: 0.75rem;
+      }
+      .science-box {
+        font-size: 0.9rem;
+        padding: 0.75rem;
+      }
+      nav {
+        flex-wrap: wrap;
+        padding: 0.5rem;
+        gap: 0.5rem;
+      }
+      nav button, .intro-content button {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        height: 36px;
+      }
+      nav input {
+        width: min(100px, 25vw);
+      }
+      .intro-content {
+        padding: 1.5rem;
+      }
+      .intro-content p {
+        font-size: 1rem;
+      }
+      .intro-logo {
+        height: min(36px, 10vw);
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .sensor-label, .graph-label {
+        font-size: 12px;
+        width: min(180px, 90vw);
+      }
+      .cleaning-label {
+        font-size: 12px;
+      }
+      .sensor-label.expanding {
+        animation: expand 2s ease-in-out infinite, blink 1s infinite;
+      }
+      .sensor-label.compressing {
+        transform: scale(0.9);
+        animation: blink 1s infinite;
+      }
+      .sensor-label.paused, .graph-label.paused {
+        animation-play-state: paused;
+      }
+      @keyframes expand {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+      .breathe-button, .download-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+      }
+      .y-axis-labels {
+        left: -25px;
+        width: 20px;
+        font-size: 8px;
+      }
+      .figure-caption {
+        font-size: 0.8rem;
+      }
+      .equation {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+      }
+      .science-box {
+        font-size: 0.8rem;
+        padding: 0.5rem;
+      }
+      nav button, .intro-content button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+      }
+      .intro-content {
+        padding: 1rem;
+      }
+      .intro-content p {
+        font-size: 0.9rem;
+      }
+      .intro-logo {
+        height: min(32px, 12vw);
+      }
+      h1 {
+        font-size: 1.2rem;
+      }
+    }
   </style>
 </head>
 <body>
   <nav style="position: sticky; top: 0; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
     <div style="display: flex; align-items: center;">
       <img src="https://media.licdn.com/dms/image/v2/C4E0BAQHOhSyAWy-p0Q/company-logo_200_200/company-logo_200_200/0/1667921192659/stratuscent_logo?e=2147483647&v=beta&t=Jeo2cNHo6735I2YiT9gtucECAMuOesoJV8Z2d9zFaKw" alt="Noze Logo" style="height: 40px; width: auto; margin-right: 10px; border-radius: 6px;" />
-      <span style="font-weight: bold; font-size: 1.2rem; color: #00DE93;">How does the Polymer–CB Sensor work?</span>
+      <span style="font-weight: bold; font-size: 1.2rem; color: #00DE93;">Polymer–carbon black (CB) Sensor </span>
     </div>
     <div style="display: flex; align-items: center; gap: 1rem;">
-      <button id="toggleButton" aria-label="Pause animation">[⏯] Pause</button>
-      <button id="scienceButton" aria-label="Toggle scientific details">[ℹ] Science</button>
+      <button id="scienceButton" aria-label="Toggle scientific details"> Science</button>
       <button id="guideButton" aria-label="Start guided tour">[📖] Guide</button>
+      <button id="toggleButton" aria-label="Pause animation"> Pause</button>
       <label for="speedSlider" style="font-size: 0.85rem; color: #333;">Speed</label>
-      <input type="range" id="speedSlider" min="0" max="2" step="0.1" value="1" aria-label="Animation speed" style="width: 120px; accent-color: #00DE93;">
+      <input type="range" id="speedSlider" min="0" max="2" step="0.1" value="1" aria-label="Animation speed" style="width: min(120px, 30vw); accent-color: #00DE93;">
     </div>
   </nav>
   <div class="intro-overlay" id="introOverlay">
     <div class="intro-content">
       <img src="https://media.licdn.com/dms/image/v2/C4E0BAQHOhSyAWy-p0Q/company-logo_200_200/company-logo_200_200/0/1667921192659/stratuscent_logo?e=2147483647&v=beta&t=Jeo2cNHo6735I2YiT9gtucECAMuOesoJV8Z2d9zFaKw" alt="Noze Logo" class="intro-logo">
-      <p><strong>Welcome!</strong> Discover how a Polymer-CB sensor detects gases by visualizing how carbon black (CB) particles shift within the polymer matrix as the film expands and contracts during gas exposure and removal. Use the <strong>Pause</strong> button to stop, adjust speed with the slider, or click <strong>Science</strong> or <strong>Guide</strong> for more details.</p>
+      <p><strong>Welcome!</strong> Discover how a Polymer-CB sensor detects gases by visualizing how carbon black (CB) particles move within the polymer matrix as the film expands and contracts during gas introduction and removal. In this app, pl Wait for the sensor cleaning to finish, then press the <strong>Breathe</strong> button inside the thin film animation window to introduce analytes. Wait for the breath cycle to complete, then download the breath data using the <strong>Download Data</strong> button in the graph window. Use the <strong>Pause</strong> button to stop, adjust speed with the slider, or click <strong>Science</strong> or <strong>Guide</strong> for more details.</p>
       <button id="dismissIntro">Got it!</button>
     </div>
   </div>
   <div class="feedback-toast" id="feedbackToast"></div>
-  <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
-    <div class="layout" style="margin-top: 0; max-width: 880px; margin-left: auto; margin-right: auto;">
+  <div class="container" style="max-width: min(1200px, 95vw); margin: 0 auto; padding: 0 1rem;">
+    <div class="layout" style="margin-top: 0; max-width: min(880px, 90vw); margin-left: auto; margin-right: auto;">
       <div class="canvas-wrapper">
         <div class="sensor-label" id="sensorLabel">Baseline</div>
         <canvas id="sensorCanvas" width="400" height="300" aria-label="Polymer-CB thin film animation" aria-describedby="sensorDesc"></canvas>
-        <div class="figure-caption">Polymer-CB thin film</div>
+        <div class="cleaning-label" id="cleaningLabel"> Cleaning sensor, please wait!</div>
+        <button id="breatheButton" class="breathe-button" aria-label="Introduce analytes">Breathe</button>
+        <div class="figure-caption">Polymer-CB sensor thin film</div>
       </div>
       <div class="canvas-wrapper">
-        <div class="graph-label" id="graphLabel"><span>Baseline<span class="tooltip">No gas is present, sensor is in its normal state.</span></span></div>
+        <div class="graph-label" id="graphLabel"><span>Baseline<span class="tooltip"> No gas is present, sensor is in its normal state.</span></span></div>
         <div class="graph-container">
           <div class="y-axis-labels" aria-label="Resistance axis labels">
             <div>150k</div>
@@ -258,8 +522,9 @@
             <div>100k</div>
           </div>
           <canvas id="graphCanvas" width="400" height="300" aria-label="Resistance vs Time graph" aria-describedby="graphDesc"></canvas>
+          <button id="downloadButton" class="download-button" aria-label="Download graph data as CSV">Download Data</button>
         </div>
-        <div class="figure-caption">Resistance of thin films vs Time</div>
+        <div class="figure-caption">Resistance of thin films vs Time [s]</div>
       </div>
     </div>
     <div id="sensorDesc" style="display: none;">Animation showing Polymer-CB sensor particles reacting to gas, swelling when gas is introduced, and returning to normal when gas is removed.</div>
@@ -272,8 +537,8 @@
       <strong>Scientific Principle:</strong><br/>
       Polymer–CB (carbon black) sensors are chemiresistive devices that detect gaseous analytes by measuring changes in electrical resistance. These sensors consist of a thin film made from a swellable polymer matrix embedded with conductive carbon black (CB) particles, forming a percolative network that conducts electricity. The sensor’s operation relies on the polymer’s ability to swell upon analyte adsorption, which alters the CB network’s connectivity and thus the sensor’s resistance.<br/><br/>
       The sensor operates in three phases: <em>Baseline</em>, <em>Exposure</em>, and <em>Recovery</em>. In the <strong>Baseline</strong> phase, no analyte is present, the polymer is unswollen, and CB particles are closely packed, forming a dense conductive network with low baseline resistance (R₀). During <strong>Exposure</strong>, analyte gas molecules adsorb onto the polymer surface and diffuse into the matrix, causing the polymer to swell. This swelling increases the distance between CB particles, reducing the number of conductive pathways and increasing resistance (R). In the <strong>Recovery</strong> phase, analytes desorb, the polymer contracts, and CB particles reconnect, restoring the baseline resistance. The resistance change, ΔR = R - R₀, is reversible due to the polymer’s elastic properties and weak analyte binding, enabling repeated sensing cycles.<br/><br/>
-      <strong>Adsorption and Desorption</strong> are central to the sensor’s function. Adsorption occurs when analyte molecules bind to the polymer through intermolecular forces, such as van der Waals or hydrogen bonding, depending on the polymer’s chemical structure and the analyte’s properties (e.g., polarity, size). The extent of adsorption depends on analyte concentration, exposure time, and the polymer’s affinity for the analyte. At low concentrations, adsorption is roughly linear, causing gradual swelling and a proportional increase in resistance. At higher concentrations, adsorption may approach saturation, where the polymer’s capacity to absorb more analyte is limited, stabilizing the resistance change. Desorption during Recovery reverses this process, as analyte molecules diffuse out, allowing the polymer to deswell. The sensor’s sensitivity and response time vary with factors like polymer type (e.g., polar vs. non-polar), CB concentration, and analyte volatility.<br/><br/>
-      <strong>Fabrication Process</strong>: The sensor is fabricated by first preparing a colloidal suspension, known as "sensor ink," consisting of a polymer solution mixed with CB particles. The polymer is dissolved in a solvent (e.g., chloroform or toluene), and CB particles are added to this solution. The mixture is vigorously stirred and subjected to ultrasonication—high-frequency sound waves—to uniformly disperse the CB particles, preventing aggregation and ensuring a stable suspension. This sensor ink is then precisely dispensed onto a silicon substrate with pre-fabricated gold electrodes, chosen for their high conductivity and chemical stability. The electrodes, often patterned using photolithography to form interdigitated or parallel structures, maximize the sensing area. Dispensing techniques such as drop-casting, spin-coating, or inkjet printing control the ink’s placement and volume. After dispensing, the ink is dried (e.g., via air drying, oven baking, or vacuum drying) to evaporate the solvent, forming a thin Polymer-CB film approximately 0.5 μm thick on the electrode surface. The film’s uniformity and thickness are critical for consistent sensor performance, ensuring a reliable percolative network for chemiresistive sensing.<br/><br/>
+      <strong>Adsorption and Desorption</strong> are central to the sensor’s function. Adsorption occurs when analyte molecules bind to the polymer through intermolecular forces, such as van der Waals or hydrogen bonding, depending on the polymer’s chemical structure and the analyte’s properties (e.g., polarity, size). The extent of adsorption depends on analyte concentration, exposure time, and the polymer’s affinity for the analyte. At low concentrations, adsorption is roughly linear, causing gradual swelling and a proportional increase in resistance. At high concentrations, adsorption may approach saturation, where the polymer’s capacity to absorb more analyte is limited, stabilizing the resistance change. Desorption during Recovery reverses this process, as analyte molecules diffuse out, allowing the polymer to deswell. The sensor’s sensitivity and response time vary with factors like polymer type (e.g., polar vs. non-polar), CB concentration, and analyte volatility.<br/><br/>
+      <strong>Fabrication Process</strong>: The sensor is fabricated by first preparing a colloidal suspension, known as "sensor ink," consisting of a polymer solution mixed with CB particles. The polymer is dissolved in a solvent, and CB particles are added to this solution. The mixture is vigorously stirred and subjected to ultrasonication—high-frequency sound waves—to uniformly disperse the CB particles, preventing aggregation and ensuring a stable suspension. This sensor ink is then precisely dispensed onto a silicon substrate with pre-fabricated gold electrodes, chosen for their high conductivity and chemical stability. The electrodes, often patterned using photolithography to form interdigitated or parallel structures, maximize the sensing area. Dispensing techniques such as drop-casting, or printing control the ink’s placement and volume. After dispensing, the ink is dried (e.g., via air drying ) to evaporate the solvent, forming a thin Polymer-CB films on the electrode surface. The film’s uniformity and thickness are critical for consistent sensor performance, ensuring a reliable percolative network for chemiresistive sensing.<br/><br/>
       The resistance change is governed by the disruption of the CB network’s conductivity. In the Baseline state, closely spaced CB particles form efficient conductive pathways. Swelling during Exposure increases inter-particle distances, breaking some pathways and raising resistance. This behavior is influenced by the polymer’s elasticity, the volume fraction of CB, and the analyte’s interaction strength. The sensor’s design can be tailored by selecting polymers with specific chemical properties or adjusting CB loading to optimize sensitivity, selectivity, or response speed for different applications.<br/><br/>
       The response is modeled by <em>percolation theory</em>, which describes how conductivity in a composite material depends on the connectivity of conductive particles. As CB particles separate during swelling, the network approaches a percolation threshold (ϕc), below which conductivity drops sharply. A simplified empirical percolation equation is:
       <pre style="background:#f6f6f6; padding: 0.5rem; border-radius: 4px; font-size: 0.95rem;">
@@ -303,9 +568,12 @@
     const speedSlider = document.getElementById('speedSlider');
     const sensorLabel = document.getElementById('sensorLabel');
     const graphLabel = document.getElementById('graphLabel');
+    const cleaningLabel = document.getElementById('cleaningLabel');
     const introOverlay = document.getElementById('introOverlay');
     const dismissIntro = document.getElementById('dismissIntro');
     const feedbackToast = document.getElementById('feedbackToast');
+    const breatheButton = document.getElementById('breatheButton');
+    const downloadButton = document.getElementById('downloadButton');
 
     let isRunning = true;
     let speedMultiplier = parseFloat(speedSlider.value);
@@ -314,10 +582,84 @@
     let resistance = 100000;
     let particleDensity = 1.2;
     let guideStep = 0;
+    let state = "initial";
+    let initialCycleCount = 0;
+    let cycleProgress = 0;
+    const cycleDuration = 1060; // One full cycle (Baseline → Exposure → Recovery)
+    let cycleData = []; // Store data for the cycle triggered by Breathe button
+    let hasCycleCompleted = false; // Track if a Breathe button cycle has completed
 
     // Dismiss intro overlay
     dismissIntro.addEventListener('click', () => {
       introOverlay.style.display = 'none';
+    });
+
+    // Breathe button event
+    breatheButton.addEventListener('click', () => {
+      if (isRunning && state === "baseline" && !breatheButton.disabled) {
+        state = "cycle";
+        cycleProgress = 0;
+        cycleData = []; // Reset cycle data for new cycle
+        breatheButton.disabled = true;
+        downloadButton.style.display = 'none'; // Hide Download CSV button when Breathe is clicked
+        showFeedback('Analytes introduced');
+      }
+    });
+    breatheButton.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (isRunning && state === "baseline" && !breatheButton.disabled) {
+        state = "cycle";
+        cycleProgress = 0;
+        cycleData = []; // Reset cycle data for new cycle
+        breatheButton.disabled = true;
+        downloadButton.style.display = 'none'; // Hide Download CSV button when Breathe is clicked
+        showFeedback('Analytes introduced');
+      }
+    });
+
+    // Download button event
+    downloadButton.addEventListener('click', (event) => {
+      event.preventDefault(); // Prevent any default behavior
+
+      if (cycleData.length > 0) {
+        try {
+          // Generate CSV content from cycleData, which matches the graph's plotted data
+          const csvContent = [
+            "Time (s),Resistance (Ω)", // Header
+            ...cycleData.map(data => `${data.time.toFixed(2)},${data.resistance}`)
+          ].join("\n");
+
+          // Create a Blob with the CSV content
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+          // Create a URL for the Blob
+          const url = URL.createObjectURL(blob);
+
+          // Create a temporary link to trigger download
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'sensor_data.csv';
+          document.body.appendChild(link);
+
+          // Trigger the download with a slight delay to ensure it initiates
+          setTimeout(() => {
+            link.click();
+            // Clean up
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            // Hide the download button after download
+            downloadButton.style.display = 'none';
+            hasCycleCompleted = false; // Reset flag so button won't reappear until next cycle
+
+            showFeedback('CSV downloaded');
+          }, 100); // 100ms delay to ensure browser handles the download
+        } catch (error) {
+          showFeedback('Error downloading CSV.');
+        }
+      } else {
+        showFeedback('No data to download. Run a cycle first.');
+      }
     });
 
     // Show feedback toast
@@ -376,30 +718,49 @@
     const resistanceData = [];
     const maxDataPoints = 600;
 
-    function updateSwellAndResistance() {
-      const t = frame % 1060;
+    function updateSwellAndResistance(t) {
       let tInPhase = 0;
-      if (t < 120) { swell = 1.0; resistance = 100000; particleDensity = 1.2; }
-      else if (t < 340) {
-        tInPhase = t - 120;
-        let r = 1 - Math.exp(-0.1 * tInPhase);
-        swell = 1.0 + 0.2 * r;
-        resistance = 100000 + 50000 * r;
-        particleDensity = 1.2 - 0.9 * r;
+      if (state === "initial") {
+        // During initial cycle, keep resistance at 100kΩ (Baseline only)
+        swell = 1.0;
+        resistance = 100000;
+        particleDensity = 1.2;
+      } else if (state === "cycle") {
+        // Normal cycle behavior with Exposure and Recovery
+        if (t < 120) { 
+          swell = 1.0; 
+          resistance = 100000; 
+          particleDensity = 1.2; 
+        } else if (t < 340) {
+          tInPhase = t - 120;
+          let r = 1 - Math.exp(-0.1 * tInPhase);
+          swell = 1.0 + 0.2 * r;
+          resistance = 100000 + 50000 * r;
+          particleDensity = 1.2 - 0.9 * r;
+        } else if (t < 400) { 
+          swell = 1.2; 
+          resistance = 150000; 
+          particleDensity = 0.3; 
+        } else if (t < 700) {
+          tInPhase = t - 400;
+          let r = 1 - Math.exp(-0.02 * tInPhase);
+          swell = 1.2 - 0.2 * r;
+          resistance = 150000 - 50000 * r;
+          particleDensity = 0.3 + 0.9 * r;
+        } else { 
+          swell = 1.0; 
+          resistance = 100000; 
+          particleDensity = 1.2; 
+        }
+      } else {
+        // Baseline state
+        swell = 1.0;
+        resistance = 100000;
+        particleDensity = 1.2;
       }
-      else if (t < 400) { swell = 1.2; resistance = 150000; particleDensity = 0.3; }
-      else if (t < 700) {
-        tInPhase = t - 400;
-        let r = 1 - Math.exp(-0.02 * tInPhase);
-        swell = 1.2 - 0.2 * r;
-        resistance = 150000 - 50000 * r;
-        particleDensity = 0.3 + 0.9 * r;
-      }
-      else { swell = 1.0; resistance = 100000; particleDensity = 1.2; }
     }
 
     function drawSensorFrame() {
-      const sensorT = frame % 1060;
       const gasDensity = swell > 1.05 ? 80 : 0;
 
       sensorCtx.clearRect(0, 0, 400, 300);
@@ -430,12 +791,11 @@
     }
 
     function drawGraphFrame() {
-      const graphT = frame % 1060;
       let bgColor;
-      if (graphT >= 120 && graphT < 400) {
+      if (state !== "initial" && cycleProgress >= 120 && cycleProgress < 400) {
         bgColor = 'rgb(255, 220, 235)';
-      } else if (graphT >= 400 && graphT < 700) {
-        const progress = (graphT - 400) / 300;
+      } else if (state !== "initial" && cycleProgress >= 400 && cycleProgress < 700) {
+        const progress = (cycleProgress - 400) / 300;
         const green = Math.round(220 + (255 - 220) * progress);
         const blue = Math.round(235 + (255 - 235) * progress);
         bgColor = `rgb(255, ${green}, ${blue})`;
@@ -444,13 +804,16 @@
       }
       let labelText = '';
       let labelColor = '#0000FF';
-      if (graphT < 120 || graphT >= 700) {
+      if (state === "initial") {
+        labelText = 'Cleaning...';
+        labelColor = '#0000FF';
+      } else if (cycleProgress < 120 || cycleProgress >= 700) {
         labelText = 'Baseline';
         labelColor = '#0000FF';
-      } else if (graphT >= 120 && graphT < 400) {
+      } else if (cycleProgress >= 120 && cycleProgress < 400) {
         labelText = 'Analyte Introduced';
         labelColor = '#FF0000';
-      } else if (graphT >= 400 && graphT < 700) {
+      } else if (cycleProgress >= 400 && cycleProgress < 700) {
         labelText = 'Analytes Removed (Recovery)';
         labelColor = '#008000';
       }
@@ -460,9 +823,11 @@
       graphCtx.fillRect(0, 0, 400, 300);
       graphCtx.drawImage(gridCanvas, 0, 0);
 
+      // Update resistanceData for plotting (capped at maxDataPoints)
       resistanceData.push(resistance);
       if (resistanceData.length > maxDataPoints) resistanceData.shift();
 
+      // Plot the graph using resistanceData
       if (resistanceData.length >= 2) {
         graphCtx.beginPath();
         graphCtx.strokeStyle = '#00DE93';
@@ -511,10 +876,6 @@
         graphCtx.arc(lastX, lastY, 4, 0, Math.PI * 2);
         graphCtx.fillStyle = '#FF5733';
         graphCtx.fill();
-        graphCtx.fillStyle = '#333';
-        graphCtx.font = '12px sans-serif';
-        graphCtx.textAlign = 'left';
-        graphCtx.fillText(`${Math.round(resistance / 1000)}kΩ`, lastX + 10, lastY - 10);
       }
 
       // Draw axis labels
@@ -526,7 +887,7 @@
       graphCtx.textAlign = 'center';
       graphCtx.fillText('Resistance (Ω)', 0, 0);
       graphCtx.restore();
-      graphCtx.fillText('Time [s]', 330, 290);
+      graphCtx.fillText('', 330, 290);
     }
 
     // Guided tour
@@ -539,10 +900,12 @@
       document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
       
       const steps = [
-        { element: sensorCanvas, message: 'Step 1: Watch the sensor thin films swell when gas is introduced.' },
+        { element: sensorCanvas, message: 'Step 1: Watch the sensor particles swell when gas is introduced.' },
         { element: graphCanvas, message: 'Step 2: See how resistance changes on the graph as gas affects the sensor.' },
         { element: speedSlider, message: 'Step 3: Adjust the animation speed with this slider.' },
-        { element: scienceBtn, message: 'Step 4: Click Science to learn more about how the sensor works!' },
+        { element: breatheButton, message: 'Step 4: Press the Breathe button inside the thin film animation window to introduce analytes after the initial cycle.' },
+        { element: downloadButton, message: 'Step 5: After a Breathe cycle completes, click Download CSV to save the graph data.' },
+        { element: scienceBtn, message: 'Step 6: Click Science to learn more about how the sensor works!' },
         { element: null, message: 'Tour complete! Explore freely.' }
       ];
 
@@ -555,34 +918,91 @@
           showFeedback(step.message);
         }
         guideStep++;
-        setTimeout(runGuide, 10000); // Slowed down to 5 seconds per step
+        setTimeout(runGuide, 5000); // Slowed down to 5 seconds per step
       }
     }
 
     function animate(timestamp) {
       if (!isRunning || speedMultiplier === 0) return; // Pause if speed is 0
-      updateSwellAndResistance();
-      
+
+      // Update cycle progress for initial cycle or button-triggered cycle
+      if (state === "initial") {
+        cycleProgress++;
+        if (cycleProgress >= cycleDuration) {
+          initialCycleCount++;
+          cycleProgress = 0;
+          if (initialCycleCount >= 1) {
+            state = "baseline";
+            cleaningLabel.style.display = 'none'; // Hide cleaning label
+            breatheButton.style.display = 'block'; // Show Breathe button
+            breatheButton.disabled = false; // Enable the button
+          }
+        }
+      } else if (state === "cycle") {
+        cycleProgress++;
+        // Store data for the cycle, matching what is plotted on the graph
+        const time = cycleProgress / 24; // Convert frames to seconds (assuming 24 fps)
+        cycleData.push({ time: time, resistance: resistance });
+        if (cycleProgress >= cycleDuration) {
+          state = "baseline";
+          cycleProgress = 0;
+          breatheButton.disabled = false;
+          hasCycleCompleted = true; // Mark that a cycle has completed
+          downloadButton.style.display = 'block'; // Show the download button
+        }
+      }
+
+      // Show "Cleaning sensor, please wait!" label and hide Breathe button during initial cycle
+      if (state === "initial") {
+        cleaningLabel.style.display = 'block';
+        breatheButton.style.display = 'none';
+      } else {
+        cleaningLabel.style.display = 'none';
+        if (state === "baseline") {
+          breatheButton.style.display = 'block';
+        }
+      }
+
+      // Update values and labels based on cycle progress
+      if (state === "initial" || state === "cycle") {
+        updateSwellAndResistance(cycleProgress);
+      } else if (state === "baseline") {
+        swell = 1.0;
+        resistance = 100000;
+        particleDensity = 1.2;
+        cycleProgress = 0; // Keep cycleProgress at 0 in baseline to match reference behavior
+        if (!hasCycleCompleted) {
+          downloadButton.style.display = 'none'; // Hide download button if no cycle has completed
+        }
+      }
+
       // Update sensor and graph labels
-      const t = frame % 1060;
       let phaseText = '';
       let sensorText = '';
       let phaseTooltip = '';
       let phaseColor = '#0000FF';
-      if (t < 120 || t >= 700) {
+      sensorLabel.classList.remove('expanding', 'compressing');
+      if (state === "initial") {
+        phaseText = 'Cleaning...';
+        sensorText = 'Cleaning...';
+        phaseTooltip = 'Sensor is initializing, please wait.';
+        phaseColor = '#0000FF';
+      } else if (state === "baseline" || cycleProgress < 120 || cycleProgress >= 700) {
         phaseText = 'Baseline';
         sensorText = 'Baseline';
         phaseTooltip = 'No gas is present, sensor is in its normal state.';
-      } else if (t >= 120 && t < 400) {
+      } else if (cycleProgress >= 120 && cycleProgress < 400) {
         phaseText = 'Analyte Introduced';
         sensorText = 'Expansion of thin films';
         phaseTooltip = 'Gas is added, causing the sensor to swell and resistance to increase.';
         phaseColor = '#FF0000';
-      } else if (t >= 400 && t < 700) {
+        sensorLabel.classList.add('expanding');
+      } else if (cycleProgress >= 400 && cycleProgress < 700) {
         phaseText = 'Analytes Removed (Recovery)';
         sensorText = 'Compression of thin films';
         phaseTooltip = 'Gas is removed, sensor returns to normal, resistance decreases.';
         phaseColor = '#008000';
+        sensorLabel.classList.add('compressing');
       }
       graphLabel.innerHTML = `<span>${phaseText}<span class="tooltip">${phaseTooltip}</span></span>`;
       graphLabel.style.color = phaseColor;
@@ -597,10 +1017,21 @@
 
     function toggleAnimation() {
       isRunning = !isRunning;
-      toggleBtn.textContent = isRunning ? '[⏯] Pause' : '[⏯] Start';
+      toggleBtn.textContent = isRunning ? 'Pause' : 'Start';
       toggleBtn.setAttribute('aria-label', isRunning ? 'Pause animation' : 'Start animation');
       showFeedback(isRunning ? 'Animation started' : 'Animation paused');
-      if (isRunning && speedMultiplier !== 0) requestAnimationFrame(animate);
+      if (isRunning) {
+        sensorLabel.classList.remove('paused');
+        graphLabel.classList.remove('paused');
+        breatheButton.classList.remove('paused');
+        downloadButton.classList.remove('paused');
+        if (speedMultiplier !== 0) requestAnimationFrame(animate);
+      } else {
+        sensorLabel.classList.add('paused');
+        graphLabel.classList.add('paused');
+        breatheButton.classList.add('paused');
+        downloadButton.classList.add('paused');
+      }
     }
 
     toggleBtn.addEventListener('click', toggleAnimation);
